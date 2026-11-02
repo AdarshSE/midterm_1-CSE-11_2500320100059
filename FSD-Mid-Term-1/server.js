@@ -128,6 +128,91 @@ app.delete('/api/books/:id', (req, res) => {
     });
 });
 
+app.get('/api/search', (req, res) => {
+    const query = (req.query.q || '').trim().toLowerCase();
+
+    if (!query) {
+        return res.status(400).json({
+            message: "Please enter a search keyword"
+        });
+    }
+
+    const result = books.filter(b =>
+        b.title.toLowerCase().includes(query) ||
+        b.author.toLowerCase().includes(query) ||
+        b.genre.toLowerCase().includes(query)
+    );
+
+    res.json({
+        results: result
+    });
+});
+
+
+app.post('/api/books/:id/issue', (req, res) => {
+    const id = Number(req.params.id);
+    const book = books.find(b => b.id === id);
+    const quantity = req.body.quantity ?? 1;
+
+    if (!book) {
+        return res.status(404).json({
+            message: "Book not found"
+        });
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({
+            message: "Enter a valid quantity"
+        });
+    }
+
+    if (book.availableCopies < quantity) {
+        return res.status(400).json({
+            message: "Not enough copies available"
+        });
+    }
+
+    book.availableCopies -= quantity;
+    book.issuedCopies += quantity;
+
+    res.json({
+        message: "Book issued successfully",
+        book
+    });
+});
+
+
+app.post('/api/books/:id/return', (req, res) => {
+    const id = Number(req.params.id);
+    const book = books.find(b => b.id === id);
+    const quantity = req.body.quantity ?? 1;
+
+    if (!book) {
+        return res.status(404).json({
+            message: "Book not found"
+        });
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({
+            message: "Enter a valid quantity"
+        });
+    }
+
+    if (book.issuedCopies < quantity) {
+        return res.status(400).json({
+            message: "Invalid return quantity"
+        });
+    }
+
+    book.issuedCopies -= quantity;
+    book.availableCopies += quantity;
+
+    res.json({
+        message: "Book returned successfully",
+        book
+    });
+});
 
 
 app.listen(3000, () => {
